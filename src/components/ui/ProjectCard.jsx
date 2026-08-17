@@ -9,6 +9,7 @@ export function ProjectCard({ project }) {
     <motion.article
       whileHover={reduceMotion ? {} : { y: -6, filter: "brightness(1.08)" }}
       transition={{ duration: 0.25 }}
+      draggable={false}
       onMouseMove={(event) => {
         if (reduceMotion) return;
         const rect = event.currentTarget.getBoundingClientRect();
@@ -30,6 +31,7 @@ export function ProjectCard({ project }) {
       <img
         src={project.thumbnail}
         alt={`${project.title} project placeholder`}
+        draggable={false}
         className="h-44 w-full object-cover"
         loading="lazy"
       />

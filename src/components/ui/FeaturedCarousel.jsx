@@ -1,79 +1,145 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useReducedMotionPreference } from "../../hooks/useReducedMotionPreference";
+import { ProjectCard } from "./ProjectCard";
+
+const SWIPE_THRESHOLD = 80;
 
 export function FeaturedCarousel({ projects }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [[page, direction], setPage] = useState([0, 0]);
   const [paused, setPaused] = useState(false);
+
   const reduceMotion = useReducedMotionPreference();
 
-  useEffect(() => {
-    if (reduceMotion || paused || projects.length < 2) {
-      return undefined;
-    }
+  if (!projects?.length) return null;
 
-    const timer = window.setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % projects.length);
+  const activeIndex =
+    ((page % projects.length) + projects.length) % projects.length;
+
+  const prevIndex = (activeIndex - 1 + projects.length) % projects.length;
+
+  const nextIndex = (activeIndex + 1) % projects.length;
+
+  const paginate = (newDirection) => {
+    setPage(([prev]) => [prev + newDirection, newDirection]);
+  };
+
+  useEffect(() => {
+    if (paused || reduceMotion) return;
+
+    const timer = setInterval(() => {
+      paginate(1);
     }, 6000);
 
-    return () => window.clearInterval(timer);
-  }, [projects.length, paused, reduceMotion]);
+    return () => clearInterval(timer);
+  }, [paused, reduceMotion]);
 
-  const cards = projects.map((project, index) => {
-    const delta = (index - activeIndex + projects.length) % projects.length;
-    let slot = delta;
-    if (slot > 2) slot = -1;
+  const variants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 180 : -180,
+      opacity: 0,
+    }),
 
-    const cardClass =
-      slot === 0
-        ? "z-30 scale-100 opacity-100"
-        : slot === 1
-          ? "z-20 translate-x-[16%] scale-[0.93] opacity-75"
-          : slot === 2
-            ? "z-10 translate-x-[30%] scale-[0.86] opacity-45"
-            : "z-10 -translate-x-[16%] scale-[0.9] opacity-0";
+    center: {
+      x: 0,
+      opacity: 1,
+    },
 
-    return (
-      <motion.article
-        key={project.slug}
-        className={`absolute left-0 top-0 w-full transform-gpu rounded-2xl border border-zinc-700/80 bg-zinc-900/75 backdrop-blur ${cardClass}`}
-        transition={{ duration: 0.6, ease: [0.2, 0.95, 0.35, 1] }}
-        animate={{ rotateX: slot === 0 ? 0 : 2, rotateY: slot === 0 ? 0 : -8 }}
-      >
-        <img
-          src={project.thumbnail}
-          alt={`${project.title} carousel preview`}
-          className="h-52 w-full rounded-t-2xl object-cover"
-          loading="lazy"
-        />
-        <div className="space-y-3 p-5">
-          <h3 className="font-display text-xl text-zinc-50">{project.title}</h3>
-          <p className="text-sm text-zinc-300">{project.summary}</p>
-          <Link
-            to={`/projects/${project.slug}`}
-            className="inline-flex rounded-lg border border-cyan-300/60 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-200"
-          >
-            Open Case Study
-          </Link>
-        </div>
-      </motion.article>
-    );
-  });
+    exit: (direction) => ({
+      x: direction > 0 ? -180 : 180,
+      opacity: 0,
+    }),
+  };
 
   return (
     <section
-      className="relative h-[28.5rem] w-full perspective-[1400px]"
+      className="relative h-[32rem] w-full "
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <AnimatePresence>{cards}</AnimatePresence>
+      {/* Side previews */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          className="
+            absolute
+            left-0
+            w-[72%]
+            -translate-x-[18%]
+            scale-[0.82]
+            opacity-30
+            blur-[1px]
+            z-10
+          "
+        >
+          <ProjectCard project={projects[prevIndex]} />
+        </div>
+
+        <div
+          className="
+            absolute
+            right-0
+            w-[72%]
+            translate-x-[18%]
+            scale-[0.82]
+            opacity-30
+            blur-[1px]
+            z-10
+          "
+        >
+          <ProjectCard project={projects[nextIndex]} />
+        </div>
+      </div>
+
+      {/* Main card */}
+      <AnimatePresence custom={direction} initial={false}>
+        <motion.div
+          key={activeIndex}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            duration: 0.45,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0}
+          dragMomentum={false}
+          onDragEnd={(e, info) => {
+            if (info.offset.x < -SWIPE_THRESHOLD) {
+              paginate(1);
+            } else if (info.offset.x > SWIPE_THRESHOLD) {
+              paginate(-1);
+            }
+          }}
+          className="
+            absolute
+            inset-0
+            z-30
+            flex
+            items-center
+            justify-center
+            select-none
+          "
+          style={{
+            touchAction: "pan-y",
+          }}
+        >
+          <div className="w-full max-w-5xl">
+            <ProjectCard project={projects[activeIndex]} />
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Indicators */}
       <div className="absolute bottom-3 left-1/2 z-40 flex -translate-x-1/2 gap-2">
         {projects.map((project, index) => (
           <button
             key={project.slug}
             type="button"
-            onClick={() => setActiveIndex(index)}
+            onClick={() => setPage([index, index > activeIndex ? 1 : -1])}
             className={`h-2.5 rounded-full transition ${
               index === activeIndex ? "w-9 bg-cyan-300" : "w-2.5 bg-zinc-600"
             }`}
@@ -81,6 +147,47 @@ export function FeaturedCarousel({ projects }) {
           />
         ))}
       </div>
+
+      {/* Arrows */}
+      <button
+        onClick={() => paginate(-1)}
+        className="
+          absolute
+          left-4
+          top-1/2
+          z-40
+          -translate-y-1/2
+          rounded-full
+          border
+          border-cyan-500/30
+          bg-black/40
+          px-3
+          py-2
+          backdrop-blur
+        "
+      >
+        ←
+      </button>
+
+      <button
+        onClick={() => paginate(1)}
+        className="
+          absolute
+          right-4
+          top-1/2
+          z-40
+          -translate-y-1/2
+          rounded-full
+          border
+          border-cyan-500/30
+          bg-black/40
+          px-3
+          py-2
+          backdrop-blur
+        "
+      >
+        →
+      </button>
     </section>
   );
 }
