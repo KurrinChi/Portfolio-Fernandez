@@ -22,8 +22,8 @@ export default function WebDevelopmentProjectsPage() {
         subtitle="React, frontend, full-stack, and API integration work."
       >
         <div className="grid gap-6 md:grid-cols-2">
-          {projects.map((project) => (
-            <Reveal key={project.slug}>
+          {projects.map((project, index) => (
+            <Reveal key={project.slug} delay={index * 0.06} variant="scale">
               <ProjectCard project={project} />
             </Reveal>
           ))}
@@ -37,7 +37,7 @@ export default function WebDevelopmentProjectsPage() {
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {siteConfig.projects.roadmap.map((category) => (
-            <Reveal key={category}>
+            <Reveal key={category} variant="glow">
               <article className="rounded-xl border border-zinc-700 bg-zinc-900/60 p-5">
                 <h3 className="font-display text-lg text-zinc-50">
                   {category}

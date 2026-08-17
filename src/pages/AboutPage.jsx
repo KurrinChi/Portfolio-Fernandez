@@ -18,7 +18,7 @@ export default function AboutPage() {
         title="Professional Background"
         subtitle="Developer and creative producer focused on high-impact digital products and visual storytelling."
       >
-        <Reveal>
+        <Reveal variant="slide">
           <div className="rounded-2xl border border-zinc-700 bg-zinc-900/60 p-6 text-zinc-300">
             <p>{siteConfig.brand.intro}</p>
           </div>
@@ -26,7 +26,7 @@ export default function AboutPage() {
       </Section>
 
       <Section title="Education">
-        <Reveal>
+        <Reveal variant="glow">
           <div className="rounded-2xl border border-cyan-400/30 bg-zinc-900/60 p-6">
             <h3 className="font-display text-2xl text-zinc-50">
               {education.school}
@@ -44,7 +44,7 @@ export default function AboutPage() {
       <Section title="Awards & Achievements">
         <div className="grid gap-4 md:grid-cols-3">
           {awards.map((award) => (
-            <Reveal key={award}>
+            <Reveal key={award} variant="scale">
               <div className="rounded-xl border border-zinc-700 bg-zinc-900/60 p-4 text-zinc-200">
                 {award}
               </div>
@@ -56,7 +56,7 @@ export default function AboutPage() {
       <Section title="Certifications">
         <div className="grid gap-4 md:grid-cols-2">
           {certifications.map((cert) => (
-            <Reveal key={cert}>
+            <Reveal key={cert} variant="glow">
               <div className="rounded-xl border border-zinc-700 bg-zinc-900/60 p-4 text-zinc-200">
                 {cert}
               </div>
@@ -68,7 +68,7 @@ export default function AboutPage() {
       <Section title="Career Journey" className="pb-24">
         <div className="space-y-4">
           {experience.map((item) => (
-            <Reveal key={item.role}>
+            <Reveal key={item.role} variant="slide">
               <article className="rounded-2xl border border-zinc-700 bg-zinc-900/60 p-5">
                 <h3 className="font-display text-xl text-zinc-50">
                   {item.role}

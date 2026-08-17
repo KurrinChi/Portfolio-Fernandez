@@ -9,7 +9,7 @@
 
 :root {
   color-scheme: dark;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 * {
@@ -43,4 +43,86 @@ a {
     transparent 1px
   );
   background-size: 100% 3px;
+  animation: scan-shift 8s linear infinite;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.22) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: grid-drift 22s linear infinite;
+}
+
+.glitch-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.glitch-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(255, 46, 99, 0.25) 48%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  transition: transform 260ms ease;
+}
+
+.glitch-frame:hover::before {
+  transform: translateX(120%);
+}
+
+.profile-glitch {
+  animation: profile-blip 13s infinite;
+}
+
+@keyframes grid-drift {
+  from {
+    background-position:
+      0 0,
+      0 0;
+  }
+  to {
+    background-position:
+      0 48px,
+      48px 0;
+  }
+}
+
+@keyframes scan-shift {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 9px;
+  }
+}
+
+@keyframes profile-blip {
+  0%,
+  90%,
+  100% {
+    filter: none;
+    transform: translate3d(0, 0, 0);
+  }
+  92% {
+    filter: contrast(1.12) saturate(1.25) hue-rotate(8deg);
+    transform: translate3d(2px, 0, 0);
+  }
+  93% {
+    filter: contrast(1.02) saturate(0.95);
+    transform: translate3d(-2px, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanlines,
+  .hero-grid {
+    animation: none;
+  }
 }

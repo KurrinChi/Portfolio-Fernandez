@@ -109,7 +109,7 @@ export default function ContactPage() {
         className="pb-24"
       >
         <div className="grid gap-8 lg:grid-cols-2">
-          <Reveal>
+          <Reveal variant="glow">
             <form
               className="space-y-4 rounded-2xl border border-zinc-700 bg-zinc-900/70 p-6"
               onSubmit={onSubmit}
@@ -185,7 +185,7 @@ export default function ContactPage() {
             </form>
           </Reveal>
 
-          <Reveal delay={0.1}>
+          <Reveal delay={0.1} variant="glow">
             <div className="space-y-4 rounded-2xl border border-zinc-700 bg-zinc-900/70 p-6">
               <h3 className="font-display text-2xl text-zinc-50">
                 Contact Info
