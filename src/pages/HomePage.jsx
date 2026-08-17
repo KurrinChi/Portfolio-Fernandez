@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
 import { useReducedMotionPreference } from "../../hooks/useReducedMotionPreference";
-import { ProjectCard } from "./ProjectCard";
+import { ProjectCard } from "./src/components/ui/ProjectCard.jsx";
 
 export function FeaturedCarousel({ projects }) {
   const [activeIndex, setActiveIndex] = useState(0);
