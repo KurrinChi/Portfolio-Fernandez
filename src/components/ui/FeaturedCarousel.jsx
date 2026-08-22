@@ -1,193 +1,345 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useReducedMotionPreference } from "../../hooks/useReducedMotionPreference";
-import { ProjectCard } from "./ProjectCard";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, animate } from "framer-motion";
 
-const SWIPE_THRESHOLD = 80;
+import { ProjectCard } from "./ProjectCard";
+import { useReducedMotionPreference } from "../../hooks/useReducedMotionPreference";
+
+const AUTO_PLAY_DELAY = 5000;
+const DRAG_THRESHOLD = 150;
+
+// ==========================================
+// CAROUSEL CONFIGURATION
+// ==========================================
+
+const CARD_GAP = -120; // <-- DIRECTLY CONTROL CARD SPACING HERE
+
+const CARD_ACTIVE_SCALE = 1;
+const CARD_ADJACENT_SCALE = 0.52;
+const CARD_FAR_SCALE = 0.32;
 
 export function FeaturedCarousel({ projects }) {
-  const [[page, direction], setPage] = useState([0, 0]);
-  const [paused, setPaused] = useState(false);
-
   const reduceMotion = useReducedMotionPreference();
+
+  const viewportRef = useRef(null);
+
+  const [width, setWidth] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [renderX, setRenderX] = useState(0);
+
+  const x = useMotionValue(0);
+
+  /*
+   * ==========================================
+   * Resize Observer
+   * ==========================================
+   */
+
+  useEffect(() => {
+    if (!viewportRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      setWidth(viewportRef.current.clientWidth);
+    });
+
+    observer.observe(viewportRef.current);
+
+    setWidth(viewportRef.current.clientWidth);
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!projects?.length) return null;
 
-  const activeIndex =
-    ((page % projects.length) + projects.length) % projects.length;
+  /*
+   * ==========================================
+   * Layout Configuration
+   * ==========================================
+   */
 
-  const prevIndex = (activeIndex - 1 + projects.length) % projects.length;
+  const CARD_WIDTH = Math.min(1000, width * 0.62);
 
-  const nextIndex = (activeIndex + 1) % projects.length;
+  const CENTER_OFFSET = 2;
 
-  const paginate = (newDirection) => {
-    setPage(([prev]) => [prev + newDirection, newDirection]);
+  const centerX = width / 1.87 + CENTER_OFFSET;
+
+  /*
+   * ==========================================
+   * Card Positioning
+   * ==========================================
+   *
+   * CARD_GAP is intentionally independent.
+   *
+   * Change only CARD_GAP above to control
+   * the spacing/overlap between cards.
+   *
+   * Negative = overlap
+   * 0       = touching
+   * Positive = space between cards
+   */
+
+  const cardStep = CARD_WIDTH + CARD_GAP;
+
+  const ACTIVE_CARD_X = 500;
+
+  const centerToIndex = (index) => {
+    return ACTIVE_CARD_X - index * cardStep - CARD_WIDTH / 2;
   };
+
+  /*
+   * ==========================================
+   * Motion Value Tracking
+   * ==========================================
+   */
+
+  useEffect(() => {
+    const unsubscribe = x.on("change", (value) => {
+      setRenderX(value);
+    });
+
+    return () => unsubscribe();
+  }, [x]);
+
+  useEffect(() => {
+    if (!width) return;
+
+    x.set(centerToIndex(activeIndex));
+  }, [width]);
+
+  /*
+   * ==========================================
+   * Distance From Center
+   * ==========================================
+   */
+
+  const distanceFromCenter = (index) => {
+    const cardCenter = index * cardStep + CARD_WIDTH / 2 + renderX;
+
+    return cardCenter - centerX;
+  };
+
+  /*
+   * ==========================================
+   * Navigation
+   * ==========================================
+   */
+
+  const snapToIndex = (index) => {
+    animate(x, centerToIndex(index), {
+      type: "spring",
+      stiffness: 220,
+      damping: 28,
+      mass: 0.6,
+    });
+  };
+
+  const paginate = (direction) => {
+    const next = (activeIndex + direction + projects.length) % projects.length;
+
+    setActiveIndex(next);
+    snapToIndex(next);
+  };
+
+  /*
+   * ==========================================
+   * Autoplay
+   * ==========================================
+   */
 
   useEffect(() => {
     if (paused || reduceMotion) return;
 
     const timer = setInterval(() => {
       paginate(1);
-    }, 6000);
+    }, AUTO_PLAY_DELAY);
 
     return () => clearInterval(timer);
-  }, [paused, reduceMotion]);
+  }, [paused, reduceMotion, activeIndex]);
 
-  const variants = {
-    enter: (direction) => ({
-      x: direction > 0 ? 180 : -180,
-      opacity: 0,
-    }),
-
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-
-    exit: (direction) => ({
-      x: direction > 0 ? -180 : 180,
-      opacity: 0,
-    }),
-  };
+  /*
+   * ==========================================
+   * Render
+   * ==========================================
+   */
 
   return (
     <section
-      className="relative h-[32rem] w-full "
+      ref={viewportRef}
+      className="
+        relative
+        left-1/2
+        w-full
+        -translate-x-1/2
+        h-[22rem]
+      "
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Side previews */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div
-          className="
-            absolute
-            left-0
-            w-[72%]
-            -translate-x-[18%]
-            scale-[0.82]
-            opacity-30
-            blur-[1px]
-            z-10
-          "
-        >
-          <ProjectCard project={projects[prevIndex]} />
-        </div>
+      {/* ======================================
+          Carousel Track
+          ====================================== */}
 
-        <div
-          className="
-            absolute
-            right-0
-            w-[72%]
-            translate-x-[18%]
-            scale-[0.82]
-            opacity-30
-            blur-[1px]
-            z-10
-          "
-        >
-          <ProjectCard project={projects[nextIndex]} />
-        </div>
-      </div>
+      <motion.div
+        drag="x"
+        dragElastic={0.12}
+        dragMomentum={true}
+        dragConstraints={{
+          left: centerToIndex(projects.length - 1),
+          right: centerToIndex(0),
+        }}
+        onDragEnd={(event, info) => {
+          if (info.offset.x < -DRAG_THRESHOLD) {
+            paginate(1);
+            return;
+          }
 
-      {/* Main card */}
-      <AnimatePresence custom={direction} initial={false}>
-        <motion.div
-          key={activeIndex}
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            duration: 0.45,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0}
-          dragMomentum={false}
-          onDragEnd={(e, info) => {
-            if (info.offset.x < -SWIPE_THRESHOLD) {
-              paginate(1);
-            } else if (info.offset.x > SWIPE_THRESHOLD) {
-              paginate(-1);
-            }
-          }}
-          className="
-            absolute
-            inset-0
-            z-30
-            flex
-            items-center
-            justify-center
-            select-none
-          "
-          style={{
-            touchAction: "pan-y",
-          }}
-        >
-          <div className="w-full max-w-5xl">
-            <ProjectCard project={projects[activeIndex]} />
-          </div>
-        </motion.div>
-      </AnimatePresence>
+          if (info.offset.x > DRAG_THRESHOLD) {
+            paginate(-1);
+            return;
+          }
 
-      {/* Indicators */}
-      <div className="absolute bottom-3 left-1/2 z-40 flex -translate-x-1/2 gap-2">
+          snapToIndex(activeIndex);
+        }}
+        style={{
+          x,
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          position: "absolute",
+          left: 0,
+          top: "20%",
+          translateY: "-50%",
+          paddingLeft: `${centerX - CARD_WIDTH / 2}px`,
+          paddingRight: `${centerX - CARD_WIDTH / 2}px`,
+        }}
+      >
+        {projects.map((project, index) => {
+          const dx = distanceFromCenter(index);
+
+          const distance = Math.abs(index - activeIndex);
+
+          /*
+           * ======================================
+           * Card Scale
+           * ======================================
+           */
+
+          let targetScale;
+
+          if (distance === 0) {
+            targetScale = CARD_ACTIVE_SCALE;
+          } else if (distance === 1) {
+            targetScale = CARD_ADJACENT_SCALE;
+          } else {
+            targetScale = CARD_FAR_SCALE;
+          }
+
+          /*
+           * ======================================
+           * Visual Effects
+           * ======================================
+           */
+
+          const rotateY = width ? (dx / width) * -20 : 0;
+
+          const translateY = Math.abs(dx) * 0.12;
+
+          const targetOpacity = distance === 0 ? 1 : 0.8;
+
+          const targetZIndex = distance === 0 ? 1000 : 500;
+
+          /*
+           * ======================================
+           * Card
+           * ======================================
+           */
+
+          return (
+            <motion.div
+              key={project.slug}
+              initial={false}
+              animate={{
+                scale: targetScale,
+                rotateY,
+                y: translateY,
+                opacity: targetOpacity,
+              }}
+              transition={
+                reduceMotion
+                  ? {
+                      duration: 0,
+                    }
+                  : {
+                      scale: {
+                        type: "spring",
+                        stiffness: 180,
+                        damping: 22,
+                        mass: 0.7,
+                      },
+
+                      rotateY: {
+                        type: "spring",
+                        stiffness: 180,
+                        damping: 24,
+                        mass: 0.7,
+                      },
+
+                      y: {
+                        type: "spring",
+                        stiffness: 180,
+                        damping: 24,
+                        mass: 0.7,
+                      },
+
+                      opacity: {
+                        duration: 0.3,
+                        ease: "easeOut",
+                      },
+                    }
+              }
+              style={{
+                width: CARD_WIDTH,
+                flex: "0 0 auto",
+                marginRight: CARD_GAP,
+                zIndex: targetZIndex,
+                transformStyle: "preserve-3d",
+                willChange: "transform, opacity",
+              }}
+            >
+              <ProjectCard project={project} />
+            </motion.div>
+          );
+        })}
+      </motion.div>
+
+      {/* ======================================
+          Indicators
+          ====================================== */}
+
+      <div
+        className="
+          absolute
+          right-0
+          bottom-10
+          z-50
+          flex
+          gap-2
+        "
+      >
         {projects.map((project, index) => (
           <button
             key={project.slug}
-            type="button"
-            onClick={() => setPage([index, index > activeIndex ? 1 : -1])}
-            className={`h-2.5 rounded-full transition ${
-              index === activeIndex ? "w-9 bg-cyan-300" : "w-2.5 bg-zinc-600"
+            onClick={() => {
+              setActiveIndex(index);
+              snapToIndex(index);
+            }}
+            aria-label={`Go to project ${index + 1}`}
+            className={`h-2.5 rounded-full transition-all duration-300 ${
+              index === activeIndex ? "w-10 bg-cyan-300" : "w-2.5 bg-zinc-600"
             }`}
-            aria-label={`Show ${project.title}`}
           />
         ))}
       </div>
-
-      {/* Arrows */}
-      <button
-        onClick={() => paginate(-1)}
-        className="
-          absolute
-          left-4
-          top-1/2
-          z-40
-          -translate-y-1/2
-          rounded-full
-          border
-          border-cyan-500/30
-          bg-black/40
-          px-3
-          py-2
-          backdrop-blur
-        "
-      >
-        ←
-      </button>
-
-      <button
-        onClick={() => paginate(1)}
-        className="
-          absolute
-          right-4
-          top-1/2
-          z-40
-          -translate-y-1/2
-          rounded-full
-          border
-          border-cyan-500/30
-          bg-black/40
-          px-3
-          py-2
-          backdrop-blur
-        "
-      >
-        →
-      </button>
     </section>
   );
 }

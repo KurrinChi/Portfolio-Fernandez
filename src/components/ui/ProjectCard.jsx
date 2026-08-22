@@ -10,15 +10,6 @@ export function ProjectCard({ project }) {
       whileHover={reduceMotion ? {} : { y: -6, filter: "brightness(1.08)" }}
       transition={{ duration: 0.25 }}
       draggable={false}
-      onMouseMove={(event) => {
-        if (reduceMotion) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const rx = ((event.clientY - centerY) / rect.height) * -7;
-        const ry = ((event.clientX - centerX) / rect.width) * 7;
-        event.currentTarget.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-      }}
       onMouseLeave={(event) => {
         event.currentTarget.style.transform =
           "perspective(1000px) rotateX(0deg) rotateY(0deg)";
